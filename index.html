@@ -1,0 +1,305 @@
+<html lang="en">
+    <head>
+        <title>Sequence</title>
+
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-KK94CHFLLe+nY2dmCWGMq91rCGa5gtU4mk92HdvYe+M/SXH301p5ILy+dN9+nJOZ" crossorigin="anonymous">
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js" integrity="sha384-ENjdO4Dr2bkBIFxQpeoTz1HIcje39Wm4jDKdf19U8gI4ddQ3GYNS7NTKfAdVQSZe" crossorigin="anonymous"></script>
+
+        <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/seedrandom/3.0.5/seedrandom.min.js"></script>
+
+        <style>
+            body {
+                background-color: black;
+                color: white;
+            }
+
+            .box {
+                border: solid 2px white;
+            }
+
+            .container {
+                text-align: center;
+            }
+
+            input {
+                text-align: center;
+            }
+
+            input::-webkit-outer-spin-button,
+            input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+            }
+
+            /* Firefox */
+            input[type=number] {
+            -moz-appearance: textfield;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container" id="app">
+            <div class="row">
+                   <div class="col-lg-12">
+                        <h1>Sequence</h1>
+                        <span>
+                            Rules:
+                            <ul>
+                                <li>You can only use the numbers 0-9</li>
+                                <li>You can only use each number once</li>
+                                <li>There may be multiple solutions according to the clues but there is only one exact solution</li>
+                            </ul>
+                        </span>
+                   </div>
+
+                   <div class="row">
+                        Numbers used:
+                        <div class="col-sm-1" v-for="n in 10"> <!-- :style="this.numsUsed[n - 1] ? 'text-decoration: line-through' : ''"> -->
+                            <span v-show="!this.numsUsed[n - 1] ">{{ n - 1 }}</span>
+                        </div>
+                   </div>
+
+                   <div style="height: 20px"></div>
+
+                    <div class="row">
+                        <div class="col-sm-12">
+                            <div class="row" v-for="(guess, index) in guessHistory">
+                                <div class="col-sm-1">{{ index + 1 }}</div>
+                                <div class="col-sm-1 box" style="display: inline-block" :style="num.correct ? 'background-color: green' : 'background-color: red'" v-for="num in guessHistory[index]">
+                                    {{ num.val }}
+                                </div>
+                            </div>    
+                        </div>
+                    </div>
+
+                    <div style="height: 20px"></div>
+                    
+                    <div class="row">
+                        <div class="col-sm-1">{{ guessHistory.length + 1 }}</div>
+                        <div class="col-sm-1 box" style="display: inline-block" v-for="n in 10">
+                            <input class="form-control" type="number" v-model="guess[n - 1]" min="0" max="9" maxlength="1" :disabled="IsFound(n - 1)" v-on:keyup="NumberChanged(guess[n - 1], n - 1)" />
+                            <span v-if="n > 1">{{ code[n - 1] > code[n - 2] ? '↑' : '↓' }}</span>
+                        </div>
+                    </div>
+                    
+                    <div style="height: 20px"></div>
+
+                    <div class="row">
+                        <div class="col-sm-12">
+                            <button type="button" @click="GuessCombo" :disabled="solved">Submit</button>
+                            <br />
+                            <span v-show="invalid">Please enter a valid value between 0 and 9</span>
+                            <span v-show="solved">Congratulations! You solved the sequence in {{ guessHistory.length }} attempts!</span>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+        <script>
+            const app = {
+                data() {
+                    return {
+                        msg: 'hello',
+                        code: [],
+                        guess: [],
+                        guessHistory: [],
+                        solved: false,
+                        invalid: false,
+                        numsUsed: {
+                            0: false,
+                            1: false,
+                            2: false,
+                            3: false,
+                            4: false,
+                            5: false,
+                            6: false,
+                            7: false,
+                            8: false,
+                            9: false,
+                        }
+                    }
+                },
+                methods: {
+                    shuffle: function(array) {
+                        let currentIndex = array.length,  randomIndex;
+
+                        // While there remain elements to shuffle.
+                        while (currentIndex != 0) {
+
+                            // Pick a remaining element.
+                            randomIndex = Math.floor(Math.random() * currentIndex);
+                            currentIndex--;
+
+                            // And swap it with the current element.
+                            [array[currentIndex], array[randomIndex]] = [
+                            array[randomIndex], array[currentIndex]];
+                        }
+
+                        return array;
+                    },
+                    GuessCombo: function() {
+                        let hist = [];
+                        let hasIncorrect = false;
+                        this.invalid = false;
+                        let reg = /^\d+$/;
+
+                        for (let i = 0; i < this.guess.length; i++) {
+                            let n = Number(this.guess[i]);
+
+                            if (!reg.test(n) || this.guess[i] === "") {
+                                this.invalid = true;
+                                break;
+                            }
+
+                            let obj = {
+                                val: n,
+                                correct: this.guess[i] == this.code[i]
+                            };
+
+                            hist.push(obj);       
+                            
+                            if (this.numsUsed.hasOwnProperty(n)) {
+                                this.numsUsed[n] = obj.correct;
+                            }
+                        }
+
+                        for (let i = 0; i < hist.length; i++) {
+                            if (!hist[i].correct) {
+                                this.guess[i] = '';
+                                hasIncorrect = true;
+                            }
+                        }
+
+                        if (!this.invalid){
+                            this.guessHistory.push(hist);
+
+                            if (!hasIncorrect) {
+                                this.solved = true;
+                            }
+                        }
+                    },
+                    IsFound: function(idx) {
+                        if (this.guessHistory.length == 0) {
+                            return false;
+                        }
+                        else return this.guessHistory[this.guessHistory.length - 1][idx].correct;
+                    },
+                    NumberChanged: function(val, idx, evt) {
+                        let num = val;
+
+                        if (val.toString().length > 1) {
+                            this.guess[idx] = val.toString().substring(0, 1);
+                            num = Number(this.guess[idx]);
+                        }
+
+                        for (let i = 0; i < this.guess.length; i++) {
+                            if (i == idx) {
+                                continue;
+                            }
+
+                            if (this.guess[i] == num) {
+                                this.guess[i] = "";
+                            }
+                        }
+                        
+
+                        if (this.numsUsed.hasOwnProperty(val)) {
+                            this.numsUsed[val] = true;
+                        }
+                            
+                    }
+                },
+                mounted: function () {
+                    let today = new Date();
+
+                    let d = today.getUTCDate().toString();
+                    let m = today.getUTCMonth().toString();
+                    let y = today.getUTCFullYear().toString().substring(2);
+
+                    if (d.length == 1) {
+                        d = "0" + d;
+                    }
+
+                    if (m.length == 1) {
+                        m = "0" + m;
+                    }
+
+                    let dt = d + m + y;
+
+                    const generator = new Math.seedrandom(dt);
+                    const randomNumber = generator();
+                    const seed = randomNumber.toString().substring(2);
+                    
+                    let nums = [0,1,2,3,4,5,6,7,8,9];
+                   
+                    for (let i = 0; i < 10; i++) {
+                        let idx = seed[i];
+
+                        if (nums.length == 1){
+                            this.code.push(nums[0]);
+                            continue;
+                        }
+                        else if (idx >= nums.length) {
+                            idx = nums.length - 1;
+                        }
+
+                        this.code.push(nums[idx]);
+                        
+                        nums.splice(idx, 1);
+
+                        // Set to blank
+                        this.guess[i] = '';
+                    }
+
+                    console.log(dt);
+                    console.log(seed);
+                    console.log(this.code);
+
+                    //let shuffledNums = this.shuffle(nums);
+
+                    /*for (let i = 0; i < dt.length; i++) {
+                        let c = dt.charAt(i);
+                        let idx = i.toString().slice(-1);
+
+                        switch (idx) {
+                            case "0":
+                                console.log(0);
+                                break;
+                            case "1":
+                                console.log(1);
+                                break;
+                            case "2":
+                                console.log(2);
+                                break;
+                            case "3":
+                                console.log(3);
+                                break;
+                            case "4":
+                                console.log(4);
+                                break;
+                            case "5":
+                                console.log(5);
+                                break;
+                            case "6":
+                                console.log(6);
+                                break;
+                            case "7":
+                                console.log(7);
+                                break;
+                            case "8":
+                                console.log(8);
+                                break;
+                            case "9":
+                                console.log(9);
+                                break;
+                        }
+                    }*/
+                }
+            }
+            Vue.createApp(app).mount("#app");
+        </script>
+    </body>
+</html>
