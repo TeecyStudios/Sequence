@@ -177,7 +177,7 @@
                             hist.push(obj);       
                             
                             if (obj.correct){
-                                this.numsUsed[i] = obj.correct;
+                                this.numsUsed[n] = obj.correct;
                             }                            
                         }
 
@@ -203,7 +203,12 @@
                         else return this.guessHistory[this.guessHistory.length - 1][idx].correct;
                     },
                     IsUsed: function(num) {
-                        return this.numsUsed[num];
+                        for (let i = 0; i < this.guess.length; i++) {
+                            if (this.guess[i] === num) {
+                                return true;
+                            }
+                        }
+                        return false;
                     },
                     NumberChanged: function(val, idx, evt) {
                         let num = val;
@@ -218,26 +223,41 @@
                         }
                         
                         for (let i = 0; i < this.guess.length; i++) {
-                            if (i == idx) {
-                                // if (this.IsUsed(num)) { //if (this.latestGuess && this.latestGuess[i].correct && this.latestGuess[i].val === num) {
-                                //     this.guess[i] = "";
-                                // }
-                                continue;
-                            }
+                            if (this.guess[i] !== ""){
+                                let tmpNum = Number(this.guess[i]);
 
-                            if (this.guess[i] === num) {
-                                this.guess[i] = "";
+                                if (i == idx) {
+                                    // if (this.IsUsed(num)) { //if (this.latestGuess && this.latestGuess[i].correct && this.latestGuess[i].val === num) {
+                                    //     this.guess[i] = "";
+                                    // }
+                                    continue;
+                                }
+
+                                if (this.guess[i] === num) {
+                                    this.guess[i] = "";
+                                }
+                                
+                                //this.numsUsed[tmpNum] = this.IsUsed(num);
                             }
-                            
                         }
                         
-                        if (val !== "")  {
-                            this.numsUsed[num] = true;
+                        // if (!this.numsUsed[num]) {
+                        //     this.numsUsed[num] = true;
+                        // }
+
+                        // Reset all numbers manually from 0-9
+                        for (let i = 0; i <= this.guess.length; i++) {
+                            let used = this.IsUsed(i);
+                            this.numsUsed[i] = used;
                         }
-                        else {
-                            let prevNum = this.prevGuess[idx];
-                            this.numsUsed[prevNum] = false;
-                        }
+                        
+
+                        // if (val !== "")  {
+                        //     this.numsUsed[num] = true;
+                        // }
+                        // else if (this.currentNum > -1) {
+                        //     this.numsUsed[this.currentNum] = false;
+                        // }
 
                         // if (this.latestGuess) {
                         //     for (let i = 0; i < this.latestGuess.length; i++) {
