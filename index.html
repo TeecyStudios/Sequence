@@ -16,25 +16,30 @@
 
             .box {
                 border: solid 2px white;
+                padding: 15px;
+            }
+
+            .arrow {
+                font-size: 36px;
             }
 
             .container {
                 text-align: center;
             }
 
-            input {
+            .number {
                 text-align: center;
+                font-size: 26px
             }
 
             input::-webkit-outer-spin-button,
             input::-webkit-inner-spin-button {
-            -webkit-appearance: none;
-            margin: 0;
+                -webkit-appearance: none;
+                margin: 0;
             }
 
-            /* Firefox */
             input[type=number] {
-            -moz-appearance: textfield;
+                -moz-appearance: textfield;
             }
         </style>
     </head>
@@ -46,17 +51,22 @@
                         <span>
                             Rules:
                             <ul style="list-style-type: none;">
-                                <li>You can only use the numbers 0-9</li>
-                                <li>You can only use each number once</li>
-                                <li>There may be multiple solutions according to the clues but there is only one exact solution</li>
+                                <li>You can only use the numbers 0-9.</li>
+                                <li>You can only use each number once.</li>
+                                <li>The arrows show whether that number is higher or lower than the previous one.</li>
+                                <li>There may be multiple solutions according to the clues but there is only one exact solution.</li>
+
                             </ul>
                         </span>
                    </div>
 
                    <div class="row">
-                        Numbers used:
-                        <div class="col-sm-1" v-for="n in 10"> <!-- :style="this.numsUsed[n - 1] ? 'text-decoration: line-through' : ''"> -->
-                            <span v-show="!this.numsUsed[n - 1] ">{{ n - 1 }}</span>
+                        <div class="col-sm-1">
+                            Numbers used
+                        </div>
+                        
+                        <div class="col-sm-1 box" v-for="n in 10"> <!-- :style="this.numsUsed[n - 1] ? 'text-decoration: line-through' : ''"> -->
+                            <span v-show="!this.numsUsed[n - 1]">{{ n - 1 }}</span>
                         </div>
                    </div>
 
@@ -78,8 +88,8 @@
                     <div class="row">
                         <div class="col-sm-1">{{ guessHistory.length + 1 }}</div>
                         <div class="col-sm-1 box" style="display: inline-block" v-for="n in 10">
-                            <input class="form-control" type="number" v-model="guess[n - 1]" min="0" max="9" maxlength="1" :disabled="IsFound(n - 1)" v-on:keyup="NumberChanged(guess[n - 1], n - 1)" />
-                            <span v-if="n > 1">{{ code[n - 1] > code[n - 2] ? '↑' : '↓' }}</span>
+                            <input class="form-control number" type="number" v-model="guess[n - 1]" min="0" max="9" maxlength="1" :disabled="IsFound(n - 1)" v-on:keyup="NumberChanged(guess[n - 1], n - 1)" />
+                            <span class="arrow" v-if="n > 1">{{ code[n - 1] > code[n - 2] ? '↑' : '↓' }}</span>
                         </div>
                     </div>
                     
@@ -101,6 +111,7 @@
         <footer>
             ©Teecy Studios 2023
         </footer>
+
         <script>
             const app = {
                 data() {
@@ -108,6 +119,7 @@
                         msg: 'hello',
                         code: [],
                         guess: [],
+                        prevGuess: [],
                         guessHistory: [],
                         solved: false,
                         invalid: false,
@@ -164,9 +176,9 @@
 
                             hist.push(obj);       
                             
-                            if (this.numsUsed.hasOwnProperty(n)) {
-                                this.numsUsed[n] = obj.correct;
-                            }
+                            if (obj.correct){
+                                this.numsUsed[i] = obj.correct;
+                            }                            
                         }
 
                         for (let i = 0; i < hist.length; i++) {
@@ -190,6 +202,9 @@
                         }
                         else return this.guessHistory[this.guessHistory.length - 1][idx].correct;
                     },
+                    IsUsed: function(num) {
+                        return this.numsUsed[num];
+                    },
                     NumberChanged: function(val, idx, evt) {
                         let num = val;
 
@@ -198,23 +213,74 @@
                             num = Number(this.guess[idx]);
                         }
 
+                        if (val) {
+                            this.prevGuess[idx] = num;
+                        }
+                        
                         for (let i = 0; i < this.guess.length; i++) {
                             if (i == idx) {
+                                // if (this.IsUsed(num)) { //if (this.latestGuess && this.latestGuess[i].correct && this.latestGuess[i].val === num) {
+                                //     this.guess[i] = "";
+                                // }
                                 continue;
                             }
 
-                            if (this.guess[i] == num) {
+                            if (this.guess[i] === num) {
                                 this.guess[i] = "";
                             }
+                            
                         }
                         
-
-                        if (this.numsUsed.hasOwnProperty(val)) {
-                            this.numsUsed[val] = true;
+                        if (val !== "")  {
+                            this.numsUsed[num] = true;
                         }
-                            
+                        else {
+                            let prevNum = this.prevGuess[idx];
+                            this.numsUsed[prevNum] = false;
+                        }
+
+                        // if (this.latestGuess) {
+                        //     for (let i = 0; i < this.latestGuess.length; i++) {
+                        //         if (this.latestGuess[i].val == val) {
+                        //             this.guess[idx] = "";
+                        //             break;
+                        //         }
+                        //     }
+                        // }
+
+                        // if (this.numsUsed.hasOwnProperty(val)) {
+                        //     this.numsUsed[val] = true;
+                        // }
+                        // else {
+                        //     // Val deleted, use idx as numbering is the same
+                        //     this.numsUsed[idx] = false;
+                        // }
                     }
                 },
+                computed: {
+                    latestGuess: function () {
+                        if (this.guessHistory.length > 0) {
+                            return this.guessHistory[this.guessHistory.length - 1];
+                        }
+                        else {
+                            return null;
+                        }
+                    }
+                },
+                // watch: {
+                //     guess: {
+                //         deep: true,
+                //         handler: function(newVal) {
+                //             this.numsUsed = [];
+
+                //             for (let i = 0; i < newVal.length; i++) {
+                //                 if (this.IsUsed(newVal[i])) {
+                //                     this.numsUsed.push(newVal[i]);
+                //                 }
+                //             }
+                //         }
+                //     }
+                // },
                 mounted: function () {
                     let today = new Date();
 
@@ -255,6 +321,7 @@
 
                         // Set to blank
                         this.guess[i] = '';
+                        this.prevGuess[i] = '';
                     }
 
                     console.log(dt);
